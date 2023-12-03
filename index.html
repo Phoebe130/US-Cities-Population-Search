@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Type Ahead 👀</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="https://fav.farm/🔥" />
+</head>
+
+<body>
+  <!-- 功能
+1.串接 api 拿到資料
+2.在搜尋欄中輸入關鍵字後，下方顯示包含此關鍵字的城市或州名以及其人口數
+3.顯示時，關鍵字底部要有顏色（#ffc600），人口數後面數來每 3 個數字前加 1 個 comma -->
+
+  <form class="search-form">
+    <input type="text" class="search" placeholder="City or State">
+    <ul class="suggestions">
+      <li>Filter for a city</li>
+      <li>or a state</li>
+      <!-- <span class="hl">回傳到這裡</span> -->
+      <!-- <li>
+        <span class="city">los</span>
+        <span class="city">1,000,000</span>
+      </li> -->
+    </ul>
+  </form>
+  <script>
+    const endpoint = 'https://gist.githubusercontent.com/Miserlou/c5cd8364bf9b2420bb29/raw/2bf258763cdddd704f8ffd3ea9a3e81d25e2c6f6/cities.json';
+
+    //建立空陣列 準備接api傳來的資料
+    const cities = []
+    fetch(endpoint)
+      // 解析 JSON 的方法，返回一個新的 Promise 對象。
+      .then(blob => blob.json())
+      //因 cities 是 const 無法再賦值 所以用push把資料丟進去cities陣列中， ...data是展開運算子
+      .then(data => {
+        cities.push(...data);
+        console.log(data);
+      })
+      .catch(error => {
+        console.error('Fetch error:', error);
+      });
+
+
+    // 監聽input的value 當輸入框的值發生變化時，調用 displayMatches 函數。
+    const searchInput = document.querySelector('.search');
+    const suggestions = document.querySelector('.suggestions');
+    searchInput.addEventListener('change', displayMatches);
+    searchInput.addEventListener('keyup', displayMatches);
+
+
+
+    // 建立 findMatches 函式 - 找到符合用戶輸入的city或state。
+    // 參數： wordToMatch是用戶輸入的值 ; cities 是包含城市和州信息的陣列。
+    function findMatches(wordToMatch, cities) {
+
+      // 遍歷城市數據陣列，並使用正則表達式 (RegExp) 進行匹配。
+      return cities.filter(place => {
+
+        // 用RegExp建立篩選條件 建立正規式 new RegExp(regex正規式的內容, flag) 
+        /* g: global search，=> 尋找整份文件有包含的，而不是找到就停 
+            i:case insensitive =>不區分大小寫 */
+        const regex = new RegExp(wordToMatch, 'gi');
+
+        // console.log(place);
+
+        // 用 match() 比對後，回傳符合篩選條件city或state的array
+        return place.city.match(regex) || place.state.match(regex)
+      })
+    }
+
+
+    // 建立numberWithCoommas函式 - 人口數每三位數字加一個comma (正則表達式)
+    function numberWithCoommas(x) {
+      return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+    }
+
+
+    // 建立 displayMatches 函式 - 將符合條件的city或state「顯示在網頁上」
+    function displayMatches() {
+      let inputValue = searchInput.value;
+
+      // 調用findMatches函式，matchArray儲存找到用戶輸入值與api資料相符的city state的回傳
+      let matchArray = findMatches(inputValue, cities)
+      console.log(matchArray);
+
+      //寫回HTML， 用map建構HTML，並加入css樣式style
+      suggestions.innerHTML = matchArray.map(place => {
+        // 設定符合條件為輸入的關鍵字 （參數：比較的文字內容欄位,篩選條件）
+        let regex = new RegExp(inputValue, 'gi');
+
+        // 對api place 對象的 city 屬性應用正規表達式  渲染在html
+        let cityName = place.city.replace(regex, `<span class="hl">${inputValue}</span>`);
+        let stateName = place.state.replace(regex, `<span class="hl">${inputValue}</span>`)
+
+        return `
+        <li>
+        <span class="city">${cityName}, ${stateName}</span>
+        <span class="population">${numberWithCoommas(place.population)}</span>
+      </li>`
+      }).join('') //連結字串之間的符號
+    }
+
+
+
+  </script>
+</body>
+
+</html>
